@@ -1,0 +1,185 @@
+@namespace Alife.Function.MimoSpeech
+@inherits Alife.Framework.ModuleUIBase<MimoSpeechModel>
+@implements IDisposable
+@using Alife.Function.MimoSpeech
+@using Alife.Framework
+
+<div style="background: #fafafa; padding: 24px; border-radius: 12px; border: 1px solid #f0f0f0;">
+    <Flex Direction="FlexDirection.Vertical" Gap="@("24")">
+
+        @* ── 状态卡片行 ── *@
+        <GridRow Gutter="16">
+            <GridCol Span="12">
+                <Card Size="CardSize.Small" Title="MiMo 语音状态" Style="border-radius: 8px;">
+                    <Flex Direction="FlexDirection.Vertical" Align="@FlexAlign.Center" Style="padding: 12px 0;">
+                        @if (Module != null && !string.IsNullOrWhiteSpace(Configuration.ApiKey))
+                        {
+                            <Badge Status="BadgeStatus.Success" Text="已配置" />
+                            <Text Type="TextElementType.Secondary" Style="font-size: 11px; margin-top: 8px;">
+                                音色: @Configuration.Voice | 风格: @(string.IsNullOrWhiteSpace(Configuration.Style) ? "默认" : Configuration.Style)
+                            </Text>
+                        }
+                        else
+                        {
+                            <Badge Status="BadgeStatus.Error" Text="未配置 API Key" />
+                            <Text Type="TextElementType.Secondary" Style="font-size: 11px; margin-top: 8px;">
+                                前往 <a href="https://platform.xiaomimimo.com" target="_blank">platform.xiaomimimo.com</a> 获取
+                            </Text>
+                        }
+                    </Flex>
+                </Card>
+            </GridCol>
+
+            <GridCol Span="12">
+                <Card Size="CardSize.Small" Title="功能说明" Style="border-radius: 8px;">
+                    <Flex Direction="FlexDirection.Vertical" Style="padding: 8px 0;">
+                        <Text Style="font-size: 13px; line-height: 1.8;">
+                            🎤 <b>唱歌</b>：AI 调用 <code>&lt;Sing lyrics="..." /&gt;</code> 自动生成歌曲<br />
+                            🗣️ <b>方言/情绪</b>：台湾腔、东北话、粤语等风格标签<br />
+                            🎭 <b>人设定制</b>：通过 Personality 字段描述角色语感<br />
+                            ⚡ <b>音频事件</b>：对话中用全角括号写 (叹气) (别过脸)
+                        </Text>
+                    </Flex>
+                </Card>
+            </GridCol>
+        </GridRow>
+
+        @* ── 配置表单 ── *@
+        <Form TModel="MimoSpeechModelConfig" Model="@Configuration" Layout="@FormLayout.Vertical">
+
+            <FormItem Label="API Key">
+                <Input @bind-Value="@Configuration.ApiKey"
+                       Placeholder="sk-xxxxxxxxxxxxx"
+                       Type="password" />
+                <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                    从 <a href="https://platform.xiaomimimo.com" target="_blank">platform.xiaomimimo.com</a> 获取
+                </Text>
+            </FormItem>
+
+            <FormItem Label="音色 (Voice)">
+                <RadioGroup @bind-Value="@Configuration.Voice" TValue="string">
+                    <Radio Value="冰糖">冰糖</Radio>
+                    <Radio Value="白桦">白桦</Radio>
+                    <Radio Value="Mia">Mia</Radio>
+                    <Radio Value="Milo">Milo</Radio>
+                    <Radio Value="Dean">Dean</Radio>
+                </RadioGroup>
+                <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                    冰糖 — 甜美女声，推荐默认。更多音色见 API 文档。
+                </Text>
+            </FormItem>
+
+            <FormItem Label="语音风格 (Style)">
+                <Input @bind-Value="@Configuration.Style"
+                       Placeholder="台湾腔 / 东北话 / 四川话 / 粤语 / 温柔 / 开心 …" />
+                <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                    留空 = 默认普通话。多个风格可用 + 连接，如「台湾腔+开心」。
+                </Text>
+            </FormItem>
+
+            <FormItem Label="角色人设 (Personality)">
+                <AntDesign.TextArea @bind-Value="@Configuration.Personality"
+                                   Rows="4"
+                                   Placeholder="例：你是一个傲娇的猫娘，说话带喵尾音，语气中带着腹黑和撒娇的混合感..." />
+                <Text Type="TextElementType.Secondary" Style="font-size: 11px;">
+                    这段话会作为 user 消息发给 MiMo，塑造角色的语感和说话方式。留空则使用 MiMo 默认语感。
+                </Text>
+            </FormItem>
+        </Form>
+
+        @* ── 帮助提示 ── *@
+        <Alert Type="AlertType.Info"
+               ShowIcon="true"
+               Message="配置保存后自动生效。MiMo 语音模型启用后会自动关闭其他语音模型，请勿同时启用多个。"
+               Style="margin-top: 0;" />
+
+        <Alert Type="AlertType.Warning"
+               ShowIcon="true"
+               Message="唱歌功能通过 QQ 语音条发送时，AI 需使用 [CQ:record,file=路径] 格式。请确保 AI 的 Prompt 中已写入对应的 qchat 指令。"
+               Style="margin-top: 0;" />
+
+        @* ── 快捷测试按钮 ── *@
+        @if (Module != null)
+        {
+            <Flex Align="@FlexAlign.Center" Justify="FlexJustify.SpaceBetween" Style="margin-top: 8px;">
+                <Title Level="5" Style="margin: 0;">快捷测试</Title>
+                <Flex Align="@FlexAlign.Center" Gap="@("8")">
+                    @if (isTesting)
+                    {
+                        <Spin Size="SpinSize.Small" />
+                        <Text Type="TextElementType.Secondary">正在合成...</Text>
+                    }
+                    else
+                    {
+                        <Button Type="@ButtonType.Default"
+                                Size="@ButtonSize.Small"
+                                OnClick="TestMimoAsync"
+                                Disabled="@isTesting">
+                            🎵 试听音色
+                        </Button>
+                    }
+                </Flex>
+            </Flex>
+
+            @if (!string.IsNullOrWhiteSpace(testMessage))
+            {
+                <Alert Type="@(testOk ? AlertType.Success : AlertType.Error)"
+                       Message="@testMessage"
+                       ShowIcon="true"
+                       Style="margin-top: 8px;" />
+            }
+        }
+
+    </Flex>
+</div>
+
+@code {
+    bool isTesting;
+    string? testMessage;
+    bool testOk;
+
+    async Task TestMimoAsync()
+    {
+        if (Module == null || string.IsNullOrWhiteSpace(Configuration.ApiKey))
+        {
+            testMessage = "请先填写 API Key";
+            testOk = false;
+            return;
+        }
+
+        isTesting = true;
+        testMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            string testText = "你好呀，我是你的桌宠伙伴，请多关照喵。";
+            string? file = await Module.GenerateSpeechFileAsync(testText);
+
+            if (file != null)
+            {
+                testOk = true;
+                testMessage = $"合成成功 → {file} ({new System.IO.FileInfo(file).Length / 1024} KB)";
+            }
+            else
+            {
+                testOk = false;
+                testMessage = "合成失败，请检查 API Key 或网络连接";
+            }
+        }
+        catch (Exception ex)
+        {
+            testOk = false;
+            testMessage = $"出错: {ex.Message}";
+        }
+        finally
+        {
+            isTesting = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+    }
+}

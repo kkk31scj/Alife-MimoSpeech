@@ -1,0 +1,25 @@
+{
+  "id": "Alife.Function.MimoSpeech",
+  "name": "MiMo语音",
+  "author": "邵成健",
+  "description": "小米MiMo TTS语音引擎。支持唱歌、方言、情绪演绎。启用后关闭其他语音模型。",
+  "dependencies": {
+    "Alife.Function.FunctionCaller": "",
+    "Alife.Function.Speech": ""
+  },
+  "environments": {},
+  "tags": [
+    "语音模型",
+    "自定义"
+  ],
+  "source": "",
+  "releases": {
+    "1.0.0": {
+      "date": "2026-6-22",
+      "note": "MiMo语音引擎插件，支持唱歌、方言、情绪演绎、音频标签控制。基于MiMo-V2.5-TTS API。",
+      "file": "",
+      "dependencies": null,
+      "environments": null
+    }
+  }
+}
