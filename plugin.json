@@ -1,7 +1,7 @@
 {
   "id": "Alife.Function.MimoSpeech",
   "name": "MiMo语音",
-  "author": "邵成健",
+  "author": "kkk31scj",
   "description": "小米MiMo TTS语音引擎。支持唱歌、方言、情绪演绎。启用后关闭其他语音模型。",
   "dependencies": {
     "Alife.Function.FunctionCaller": "",
